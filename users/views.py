@@ -2,7 +2,7 @@ from django.contrib.auth import authenticate
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from django.contrib.auth.models import User
 from .serializers import UserSerializer
 
@@ -33,9 +33,15 @@ def custom_login(request):
 @api_view(['POST'])
 def custom_logout(request):
     try:
-        refresh_token = request.data['refresh']
+        refresh_token = request.data.get('refresh')
+        if refresh_token is None:
+            return Response({"error": "Refresh token is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
         token = RefreshToken(refresh_token)
         token.blacklist()
+
         return Response(status=status.HTTP_205_RESET_CONTENT)
+    except TokenError as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "An error occurred"}, status=status.HTTP_400_BAD_REQUEST)
